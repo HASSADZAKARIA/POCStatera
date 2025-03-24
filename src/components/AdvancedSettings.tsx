@@ -85,10 +85,10 @@ export const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({ settings, on
               value={settings.companyInfo.size}
               onChange={(e) => handleChange('companyInfo', 'size', e.target.value)}
             >
-              <option>TPE (< 10 employés)</option>
+              <option>TPE ({'<'} 10 employés)</option>
               <option>PME (10-250 employés)</option>
               <option>ETI (250-5000 employés)</option>
-              <option>Grande entreprise (> 5000 employés)</option>
+              <option>Grande entreprise ({'>'} 5000 employés)</option>
             </select>
           </div>
           <div>
