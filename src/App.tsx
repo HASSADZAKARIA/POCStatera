@@ -385,48 +385,84 @@ function App() {
 
           </div>
         );
-      case "indicators":
-        return (
-          <div className="bg-white rounded-lg p-6 shadow-md">
-  <h2 className="text-2xl font-bold mb-6">Indicateurs Détaillés</h2>
-
-  <button
-    onClick={() => setShowIndicatorUpload(true)}
-    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-  >
-    Importer des indicateurs détaillés CSV
-  </button>
-
-  {showIndicatorUpload && (
-    <FileUploadModal
-      onClose={() => setShowIndicatorUpload(false)}
-      onUpload={(data) => {
-        processIndicatorsData(data);
-        setShowIndicatorUpload(false);
-      }}
-    />
-  )}
-
-  <div className="mt-6 bg-gray-50 rounded-lg p-4 shadow">
-    <h3 className="text-lg font-semibold mb-4">📌 Moyennes des Indicateurs importés :</h3>
-    {calculerMoyennes() ? (
-      <ul className="list-disc pl-5">
-        <li>Missions effectuées : {calculerMoyennes()?.missionsEffectuees}</li>
-        <li>Kilomètres parcourus : {calculerMoyennes()?.kmParcourus} km</li>
-        <li>Trajets à vide : {calculerMoyennes()?.trajetsAVide}</li>
-        <li>Volume transporté : {calculerMoyennes()?.volumeTotalTransporte}</li>
-        <li>Capacité totale du camion : {calculerMoyennes()?.capaciteTotaleCamion}</li>
-        <li>Montant carburant dépensé : {calculerMoyennes()?.montantCarburant} €</li>
-        <li>Frais d'entretien moyens : {calculerMoyennes()?.fraisEntretien} €</li>
-        <li>Livraisons à l'heure : {calculerMoyennes()?.livraisonsALHeure}</li>
-        <li>Total livraisons : {calculerMoyennes()?.totalLivraisons}</li>
-      </ul>
-    ) : (
-      <p className="text-gray-500">Aucune donnée importée pour le moment.</p>
-    )}
-  </div>
-</div>
-);
+        case "indicators":
+          return (
+            <div className="bg-white rounded-lg p-6 shadow-md">
+              <h2 className="text-2xl font-bold mb-6">Indicateurs Détaillés</h2>
+        
+              {/* Bouton pour importer un fichier CSV */}
+              <button
+                onClick={() => setShowIndicatorUpload(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Importer des indicateurs détaillés CSV
+              </button>
+        
+              {/* Modal d'importation */}
+              {showIndicatorUpload && (
+                <FileUploadModal
+                  onClose={() => setShowIndicatorUpload(false)}
+                  onUpload={(data) => {
+                    processIndicatorsData(data);
+                    setShowIndicatorUpload(false);
+                  }}
+                />
+              )}
+        
+              {/* Moyennes des indicateurs importés */}
+              <div className="mt-6 bg-gray-50 rounded-lg p-4 shadow">
+                <h3 className="text-lg font-semibold mb-4">📌 Moyennes des Indicateurs importés :</h3>
+                {calculerMoyennes() ? (
+                  <ul className="list-disc pl-5">
+                    <li>Missions effectuées : {calculerMoyennes()?.missionsEffectuees}</li>
+                    <li>Kilomètres parcourus : {calculerMoyennes()?.kmParcourus} km</li>
+                    <li>Trajets à vide : {calculerMoyennes()?.trajetsAVide}</li>
+                    <li>Volume transporté : {calculerMoyennes()?.volumeTotalTransporte}</li>
+                    <li>Capacité totale du camion : {calculerMoyennes()?.capaciteTotaleCamion}</li>
+                    <li>Montant carburant dépensé : {calculerMoyennes()?.montantCarburant} €</li>
+                    <li>Frais d'entretien moyens : {calculerMoyennes()?.fraisEntretien} €</li>
+                    <li>Livraisons à l'heure : {calculerMoyennes()?.livraisonsALHeure}</li>
+                    <li>Total livraisons : {calculerMoyennes()?.totalLivraisons}</li>
+                  </ul>
+                ) : (
+                  <p className="text-gray-500">Aucune donnée importée pour le moment.</p>
+                )}
+              </div>
+        
+              {/* Indicateurs de performance */}
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-4">📊 Indicateurs de Performance :</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  {performanceIndicators.map((indicator, index) => (
+                    <Card
+                      key={index}
+                      className="transform transition-all duration-300 hover:shadow-lg"
+                    >
+                      <div className="p-4">
+                        <Text className="font-medium">{indicator.name}</Text>
+                        <div className="flex items-center mt-2">
+                          <span className="text-2xl font-bold mr-2">{indicator.value}</span>
+                          <span className="text-gray-500">{indicator.comparison}</span>
+                        </div>
+                        <div className="mt-4 h-2 bg-gray-200 rounded-full">
+                          <div
+                            className={`h-2 rounded-full ${
+                              indicator.status === "success"
+                                ? "bg-green-500"
+                                : indicator.status === "warning"
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }`}
+                            style={{ width: "70%" }}
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
       case "market":
         return (
           <div className="bg-white rounded-lg p-6 shadow-md">
