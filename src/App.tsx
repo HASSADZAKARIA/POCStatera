@@ -105,37 +105,6 @@ function App() {
     }, 300);
   };
 
-  const kpiCards: KPICard[] = [
-    {
-      title: "Chiffre d'affaires",
-      value: "€125,000",
-      change: "+12.5%",
-      trend: "up",
-      icon: <BarChart className="w-6 h-6 text-blue-600" />,
-    },
-    {
-      title: "Marge brute",
-      value: "€45,000",
-      change: "+8.2%",
-      trend: "up",
-      icon: <TrendingUp className="w-6 h-6 text-green-600" />,
-    },
-    {
-      title: "Coûts carburant",
-      value: "€28,500",
-      change: "-3.1%",
-      trend: "down",
-      icon: <TrendingDown className="w-6 h-6 text-red-600" />,
-    },
-    {
-      title: "Véhicules actifs",
-      value: "12",
-      change: "+2",
-      trend: "up",
-      icon: <Truck className="w-6 h-6 text-purple-600" />,
-    },
-  ];
-
   const performanceIndicators: PerformanceIndicator[] = [
     {
       name: "Taux de rotation des actifs",
@@ -420,6 +389,7 @@ function App() {
                     <li>Volume transporté : {calculerMoyennes()?.volumeTotalTransporte}</li>
                     <li>Capacité totale du camion : {calculerMoyennes()?.capaciteTotaleCamion}</li>
                     <li>Montant carburant dépensé : {calculerMoyennes()?.montantCarburant} €</li>
+                    <li>Montant carburant/km : {calculerMoyennes()?.montantCarburantKm} €/Km</li>
                     <li>Frais d'entretien moyens : {calculerMoyennes()?.fraisEntretien} €</li>
                     <li>Livraisons à l'heure : {calculerMoyennes()?.livraisonsALHeure}</li>
                     <li>Total livraisons : {calculerMoyennes()?.totalLivraisons}</li>
@@ -580,6 +550,77 @@ function App() {
         return null;
     }
   };
+  // Juste avant le return dans App.tsx
+const dernierCompteResultat = comptesResultat[comptesResultat.length - 1];
+
+const kpiCards: KPICard[] = dernierCompteResultat
+  ? [
+      {
+        title: "Chiffre d'affaires",
+        value: `${dernierCompteResultat.CA.toLocaleString()} €`,
+        change: "-", // Si tu veux une variation, il te faut importer plusieurs périodes
+        trend: "up",
+        icon: <BarChart className="w-6 h-6 text-blue-600" />,
+      },
+      {
+        title: "Marge brute",
+        value: `${(
+          dernierCompteResultat.CA -
+          (dernierCompteResultat.chargesCarburant +
+            dernierCompteResultat.entretien +
+            dernierCompteResultat.personnel +
+            dernierCompteResultat.amortissements)
+        ).toLocaleString()} €`,
+        change: "-",
+        trend: "up",
+        icon: <TrendingUp className="w-6 h-6 text-green-600" />,
+      },
+      {
+        title: "Coûts carburant",
+        value: `${dernierCompteResultat.chargesCarburant.toLocaleString()} €`,
+        change: "-",
+        trend: "down",
+        icon: <TrendingDown className="w-6 h-6 text-red-600" />,
+      },
+      {
+        title: "Résultat net",
+        value: `${dernierCompteResultat.resultatNet.toLocaleString()} €`,
+        change: "-",
+        trend: dernierCompteResultat.resultatNet >= 0 ? "up" : "down",
+        icon: <Truck className="w-6 h-6 text-purple-600" />,
+      },
+    ]
+  : [
+      {
+        title: "Chiffre d'affaires",
+        value: "-",
+        change: "-",
+        trend: "up",
+        icon: <BarChart className="w-6 h-6 text-blue-600" />,
+      },
+      {
+        title: "Marge brute",
+        value: "-",
+        change: "-",
+        trend: "up",
+        icon: <TrendingUp className="w-6 h-6 text-green-600" />,
+      },
+      {
+        title: "Coûts carburant",
+        value: "-",
+        change: "-",
+        trend: "down",
+        icon: <TrendingDown className="w-6 h-6 text-red-600" />,
+      },
+      {
+        title: "Résultat net",
+        value: "-",
+        change: "-",
+        trend: "up",
+        icon: <Truck className="w-6 h-6 text-purple-600" />,
+      },
+    ];
+
 
   return (
     <div className="min-h-screen bg-gray-50">

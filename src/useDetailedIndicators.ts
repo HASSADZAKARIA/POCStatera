@@ -21,6 +21,7 @@ export interface DetailedIndicatorAverages {
     volumeTotalTransporte: string;
     capaciteTotaleCamion: string;
     montantCarburant: string;
+    montantCarburantKm: string;
     fraisEntretien: string;
     livraisonsALHeure: string;
     totalLivraisons: string;
@@ -80,6 +81,7 @@ export const useDetailedIndicators = () => {
       volumeTotalTransporte: (somme.volumeTotalTransporte / total).toFixed(2),
       capaciteTotaleCamion: (somme.capaciteTotaleCamion / total).toFixed(2),
       montantCarburant: (somme.montantCarburant / total).toFixed(2),
+      montantCarburantKm: (somme.montantCarburant / somme.kmParcourus).toFixed(2),
       fraisEntretien: (somme.fraisEntretien / total).toFixed(2),
       livraisonsALHeure: (somme.livraisonsALHeure / total).toFixed(2),
       totalLivraisons: (somme.totalLivraisons / total).toFixed(2),
