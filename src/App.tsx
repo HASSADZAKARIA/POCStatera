@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAccountingData } from "./useAccountingData";
 import { FileUploadModal } from "./components/FileUploadModal"; // Assure-toi que le chemin est correct
 import { useDetailedIndicators } from './useDetailedIndicators';
+import * as XLSX from "xlsx";
 
 import {
   BarChart,
@@ -284,76 +285,174 @@ function App() {
             </TabGroup>
           </>
         );
-      case "accounting":
-        return (
-          <div className="bg-white rounded-lg p-6 shadow-md">
-            <h2 className="text-2xl font-bold mb-6">Données Comptables</h2>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                  <Download className="w-5 h-5" />
-                  <span>Télécharger le modèle Excel</span>
-                </button>
-
-
-                <button
-                  onClick={() => setIsUploadOpen(true)}
-                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  <FileUp className="w-5 h-5" />
-                  <span>Importer des données</span>
-                </button>
-
-                {isUploadOpen && (
-                  <FileUploadModal
-                    onClose={() => setIsUploadOpen(false)}
-                    onUpload={handleUpload}
-                  />
-                )}
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Dernière mise à jour</h3>
-                <p className="text-gray-600">15 Mars 2024 à 14:30</p>
-                <button className="mt-4 flex items-center space-x-2 text-blue-600 hover:text-blue-700">
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Actualiser</span>
-                </button>
-              </div>
-            </div>
-
-
-            <div className="mt-8">
-              {/* Affichage de tous les comptes de résultat */}
-              {comptesResultat.map((cr, index) => (
-                <div key={`cr-${index}`} className="bg-white shadow rounded p-4 mb-4">
-                  <h3 className="text-lg font-bold">📊 Compte de Résultat #{index + 1}</h3>
-                  <p>Chiffre d'affaires : {cr.CA} €</p>
-                  <p>Marge brute : {(cr.CA - (cr.chargesCarburant + cr.entretien + cr.personnel + cr.amortissements)).toFixed(2)} €</p>
-                  <p>Résultat d'exploitation : {(cr.CA - cr.chargesCarburant - cr.entretien - cr.personnel - cr.amortissements).toFixed(2)} €</p>
-                  <p>Ratio Charges/CA : {((cr.chargesCarburant + cr.entretien + cr.personnel + cr.amortissements) / cr.CA * 100).toFixed(2)}%</p>
-                  <p>CAF : {(cr.resultatNet + cr.amortissements).toFixed(2)} €</p>
+        case "accounting":
+          return (
+            <div className="bg-white rounded-lg p-6 shadow-md">
+              <h2 className="text-2xl font-bold mb-6">Données Comptables</h2>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                    <Download className="w-5 h-5" />
+                    <span>Télécharger le modèle Excel</span>
+                  </button>
+        
+                  <button
+                    onClick={() => setIsUploadOpen(true)}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                  >
+                    <FileUp className="w-5 h-5" />
+                    <span>Importer des données</span>
+                  </button>
+        
+                  {isUploadOpen && (
+                    <FileUploadModal
+                      onClose={() => setIsUploadOpen(false)}
+                      onUpload={handleUpload}
+                    />
+                  )}
                 </div>
-              ))}
-
-              {/* Affichage de tous les bilans comptables */}
-              {bilansComptables.map((bc, index) => (
-                <div key={`bc-${index}`} className="bg-white shadow rounded p-4 mb-4">
-                  <h3 className="text-lg font-bold">📈 Bilan Comptable #{index + 1}</h3>
-                  <p>Valeur des Immobilisations : {bc.immobilisations} €</p>
-                  <p>Dettes : {bc.dettes} €</p>
-                  <p>Trésorerie : {bc.tresorerie} €</p>
-                  <p>Capitaux Propres : {bc.capitauxPropres} €</p>
-                  <p>Ratio d’endettement : {(bc.dettes / bc.capitauxPropres).toFixed(2)}</p>
-                  <p>Autonomie Financière : {(bc.capitauxPropres / (bc.dettes + bc.capitauxPropres) * 100).toFixed(2)}%</p>
-                  <p>Valeur nette du parc : {(bc.immobilisations - bc.dettes).toFixed(2)} €</p>
+        
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold mb-2">Dernière mise à jour</h3>
+                  <p className="text-gray-600">15 Mars 2024 à 14:30</p>
+                  <button className="mt-4 flex items-center space-x-2 text-blue-600 hover:text-blue-700">
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Actualiser</span>
+                  </button>
                 </div>
-              ))}
+              </div>
+        
+              <div className="mt-8">
+                {/* Affichage de tous les comptes de résultat */}
+                {comptesResultat.map((cr, index) => (
+                  <div key={`cr-${index}`} className="bg-white shadow rounded p-4 mb-4">
+                    <h3 className="text-lg font-bold">📊 Compte de Résultat #{index + 1}</h3>
+                    <p>Chiffre d'affaires : {cr.CA} €</p>
+                    <p>Marge brute : {(cr.CA - (cr.chargesCarburant + cr.entretien + cr.personnel + cr.amortissements)).toFixed(2)} €</p>
+                    <p>Résultat d'exploitation : {(cr.CA - cr.chargesCarburant - cr.entretien - cr.personnel - cr.amortissements).toFixed(2)} €</p>
+                    <p>Ratio Charges/CA : {((cr.chargesCarburant + cr.entretien + cr.personnel + cr.amortissements) / cr.CA * 100).toFixed(2)}%</p>
+                    <p>CAF : {(cr.resultatNet + cr.amortissements).toFixed(2)} €</p>
+                  </div>
+                ))}
+        
+                {/* Affichage de tous les bilans comptables */}
+                {bilansComptables.map((bc, index) => (
+                  <div key={`bc-${index}`} className="bg-white shadow rounded p-4 mb-4">
+                    <h3 className="text-lg font-bold">📈 Bilan Comptable #{index + 1}</h3>
+                    <p>Valeur des Immobilisations : {bc.immobilisations} €</p>
+                    <p>Dettes : {bc.dettes} €</p>
+                    <p>Trésorerie : {bc.tresorerie} €</p>
+                    <p>Capitaux Propres : {bc.capitauxPropres} €</p>
+                    <p>Ratio d’endettement : {(bc.dettes / bc.capitauxPropres).toFixed(2)}</p>
+                    <p>Autonomie Financière : {(bc.capitauxPropres / (bc.dettes + bc.capitauxPropres) * 100).toFixed(2)}%</p>
+                    <p>Valeur nette du parc : {(bc.immobilisations - bc.dettes).toFixed(2)} €</p>
+                  </div>
+                ))}
+              </div>
+        
+              {/* Analyse Financière */}
+              <div className="mt-8 bg-gray-50 rounded-lg p-6 shadow">
+  <h3 className="text-lg font-bold mb-4">📊 Analyse Financière</h3>
+  {comptesResultat.length > 0 && bilansComptables.length > 0 ? (
+    <div className="space-y-2">
+      <p>
+        <strong>Ratio de rentabilité :</strong>{" "}
+        {(
+          (comptesResultat[0].resultatNet / comptesResultat[0].CA) *
+          100
+        ).toFixed(2)}
+        %
+      </p>
+      <p>
+        <strong>Ratio d'endettement :</strong>{" "}
+        {(
+          bilansComptables[0].dettes / bilansComptables[0].capitauxPropres
+        ).toFixed(2)}
+      </p>
+      <p>
+        <strong>Trésorerie nette :</strong>{" "}
+        {(
+          bilansComptables[0].tresorerie - bilansComptables[0].dettes
+        ).toFixed(2)}{" "}
+        €
+      </p>
+      <p>
+        <strong>Autonomie financière :</strong>{" "}
+        {(
+          (bilansComptables[0].capitauxPropres /
+            (bilansComptables[0].dettes + bilansComptables[0].capitauxPropres)) *
+          100
+        ).toFixed(2)}
+        %
+      </p>
+      <p>
+        <strong>Ratio de liquidité générale :</strong>{" "}
+        {(
+          bilansComptables[0].tresorerie / bilansComptables[0].dettes
+        ).toFixed(2)}
+      </p>
+      <p>
+        <strong>Marge brute :</strong>{" "}
+        {(
+          (comptesResultat[0].CA -
+            (comptesResultat[0].chargesCarburant +
+              comptesResultat[0].entretien +
+              comptesResultat[0].personnel +
+              comptesResultat[0].amortissements)) /
+          comptesResultat[0].CA *
+          100
+        ).toFixed(2)}
+        %
+      </p>
+      <p>
+        <strong>CAF (Capacité d'autofinancement) :</strong>{" "}
+        {(
+          comptesResultat[0].resultatNet + comptesResultat[0].amortissements
+        ).toFixed(2)}{" "}
+        €
+      </p>
+      <p>
+        <strong>Ratio de couverture des immobilisations :</strong>{" "}
+        {(
+          bilansComptables[0].capitauxPropres / bilansComptables[0].immobilisations
+        ).toFixed(2)}
+      </p>
+      <p>
+        <strong>Ratio de solvabilité :</strong>{" "}
+        {(
+          bilansComptables[0].capitauxPropres /
+          (bilansComptables[0].capitauxPropres + bilansComptables[0].dettes)
+        ).toFixed(2)}
+      </p>
+      <p>
+        <strong>Ratio de charges d'exploitation :</strong>{" "}
+        {(
+          ((comptesResultat[0].chargesCarburant +
+            comptesResultat[0].entretien +
+            comptesResultat[0].personnel +
+            comptesResultat[0].amortissements) /
+            comptesResultat[0].CA) *
+          100
+        ).toFixed(2)}
+        %
+      </p>
+    </div>
+  ) : (
+    <p className="text-gray-500">
+      Aucune donnée disponible pour l'analyse financière.
+    </p>
+  )}
+
+  {/* Bouton pour télécharger l'analyse financière */}
+  <button
+    onClick={handleDownloadAnalysis}
+    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+  >
+    Télécharger l'analyse financière
+  </button>
+</div>
             </div>
-
-
-          </div>
-        );
+          );
         case "indicators":
           return (
             <div className="bg-white rounded-lg p-6 shadow-md">
@@ -621,6 +720,68 @@ const kpiCards: KPICard[] = dernierCompteResultat
       },
     ];
 
+const handleDownloadAnalysis = () => {
+  if (comptesResultat.length === 0 || bilansComptables.length === 0) {
+    alert("Aucune donnée disponible pour l'analyse financière.");
+    return;
+  }
+
+  const data = [
+    {
+      "Ratio de rentabilité": `${(
+        (comptesResultat[0].resultatNet / comptesResultat[0].CA) *
+        100
+      ).toFixed(2)}%`,
+      "Ratio d'endettement": `${(
+        bilansComptables[0].dettes / bilansComptables[0].capitauxPropres
+      ).toFixed(2)}`,
+      "Trésorerie nette": `${(
+        bilansComptables[0].tresorerie - bilansComptables[0].dettes
+      ).toFixed(2)} €`,
+      "Autonomie financière": `${(
+        (bilansComptables[0].capitauxPropres /
+          (bilansComptables[0].dettes + bilansComptables[0].capitauxPropres)) *
+        100
+      ).toFixed(2)}%`,
+      "Ratio de liquidité générale": `${(
+        bilansComptables[0].tresorerie / bilansComptables[0].dettes
+      ).toFixed(2)}`,
+      "Marge brute": `${(
+        (comptesResultat[0].CA -
+          (comptesResultat[0].chargesCarburant +
+            comptesResultat[0].entretien +
+            comptesResultat[0].personnel +
+            comptesResultat[0].amortissements)) /
+        comptesResultat[0].CA *
+        100
+      ).toFixed(2)}%`,
+      "CAF (Capacité d'autofinancement)": `${(
+        comptesResultat[0].resultatNet + comptesResultat[0].amortissements
+      ).toFixed(2)} €`,
+      "Ratio de couverture des immobilisations": `${(
+        bilansComptables[0].capitauxPropres / bilansComptables[0].immobilisations
+      ).toFixed(2)}`,
+      "Ratio de solvabilité": `${(
+        bilansComptables[0].capitauxPropres /
+        (bilansComptables[0].capitauxPropres + bilansComptables[0].dettes)
+      ).toFixed(2)}`,
+      "Ratio de charges d'exploitation": `${(
+        ((comptesResultat[0].chargesCarburant +
+          comptesResultat[0].entretien +
+          comptesResultat[0].personnel +
+          comptesResultat[0].amortissements) /
+          comptesResultat[0].CA) *
+        100
+      ).toFixed(2)}%`,
+    },
+  ];
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Analyse Financière");
+
+  XLSX.writeFile(workbook, "analyse_financiere.xlsx");
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
