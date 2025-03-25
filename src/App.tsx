@@ -587,7 +587,7 @@ function App() {
       <div className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 p-4">
         <div className="flex items-center space-x-2 mb-8">
           <BarChart2 className="w-8 h-8 text-blue-600" />
-          <h1 className="text-xl font-bold text-gray-800">Stratera</h1>
+          <h1 className="text-xl font-bold text-gray-800">Statera</h1>
         </div>
 
         <nav className="space-y-2">
