@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAccountingData } from "./useAccountingData";
 import { FileUploadModal } from "./components/FileUploadModal"; // Assure-toi que le chemin est correct
-import { useDetailedIndicators } from './useDetailedIndicators';
+import { useDetailedIndicators } from "./useDetailedIndicators";
 import * as XLSX from "xlsx";
+import { useMarketComparison } from "./useMarketComparison";
 
 import {
   BarChart,
@@ -77,10 +78,18 @@ function App() {
   const { processIndicatorsData, calculerMoyennes } = useDetailedIndicators();
   const [showIndicatorUpload, setShowIndicatorUpload] = useState(false);
 
+  //recommendations
+  const { importMarketCSV, getLatestMarketData } = useMarketComparison();
+  const [showMarketUpload, setShowMarketUpload] = useState(false);
+  const [recommandations, setRecommandations] = useState<string[]>([]);
+  //fin recommendations
 
   //test
-  const { comptesResultat, bilansComptables, processFileData } = useAccountingData();
+  const { comptesResultat, bilansComptables, processFileData } =
+    useAccountingData();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+
+  const dernierCompteResultat = comptesResultat[comptesResultat.length - 1];
 
   const handleUpload = (data: any[]) => {
     processFileData(data);
@@ -178,10 +187,11 @@ function App() {
                         {card.value}
                       </Title>
                       <div
-                        className={`flex items-center mt-2 ${card.trend === "up"
+                        className={`flex items-center mt-2 ${
+                          card.trend === "up"
                             ? "text-green-600"
                             : "text-red-600"
-                          }`}
+                        }`}
                       >
                         {card.trend === "up" ? (
                           <TrendingUp className="w-4 h-4 mr-1" />
@@ -227,12 +237,13 @@ function App() {
                               </div>
                             </div>
                             <div
-                              className={`w-3 h-3 rounded-full ${indicator.status === "success"
+                              className={`w-3 h-3 rounded-full ${
+                                indicator.status === "success"
                                   ? "bg-green-500"
                                   : indicator.status === "warning"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                                }`}
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
+                              }`}
                             />
                           </div>
                         ))}
@@ -241,23 +252,38 @@ function App() {
 
                     <Card>
                       <Title>Recommandations</Title>
-                      <div className="space-y-4 mt-4">
-                        {recommendations.map((recommendation, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg transform transition-all duration-300 hover:shadow-md"
-                          >
-                            {recommendation.type === "improvement" ? (
-                              <LightbulbIcon className="w-5 h-5 text-yellow-500 mt-0.5" />
-                            ) : recommendation.type === "warning" ? (
-                              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
-                            ) : (
-                              <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
-                            )}
-                            <Text>{recommendation.message}</Text>
-                          </div>
-                        ))}
-                      </div>
+
+                      <button
+                        onClick={() => setShowMarketUpload(true)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                      >
+                        Importer Indicateurs Marché (CNR)
+                      </button>
+
+                      {showMarketUpload && (
+                        <FileUploadModal
+                          onClose={() => setShowMarketUpload(false)}
+                          onUpload={(data, file) => {
+                            importMarketCSV(file);
+                            setShowMarketUpload(false);
+                          }}
+                        />
+                      )}
+
+<div className="bg-white p-4 rounded-lg shadow mt-4">
+  <h3 className="font-bold text-lg">📌 Recommandations Stratégiques</h3>
+  {recommandations.length > 0 ? (
+    <ul className="mt-2 list-disc pl-5">
+      {recommandations.map((rec, index) => (
+        <li key={index}>{rec}</li>
+      ))}
+    </ul>
+  ) : (
+    <p className="text-gray-500">Importez les données du marché CNR et votre compte de résultat pour générer les recommandations.</p>
+  )}
+</div>
+
+                      
                     </Card>
                   </div>
                 </TabPanel>
@@ -285,253 +311,351 @@ function App() {
             </TabGroup>
           </>
         );
-        case "accounting":
-          return (
-            <div className="bg-white rounded-lg p-6 shadow-md">
-              <h2 className="text-2xl font-bold mb-6">Données Comptables</h2>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                    <Download className="w-5 h-5" />
-                    <span>Télécharger le modèle Excel</span>
-                  </button>
-        
-                  <button
-                    onClick={() => setIsUploadOpen(true)}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
-                  >
-                    <FileUp className="w-5 h-5" />
-                    <span>Importer des données</span>
-                  </button>
-        
-                  {isUploadOpen && (
-                    <FileUploadModal
-                      onClose={() => setIsUploadOpen(false)}
-                      onUpload={handleUpload}
-                    />
-                  )}
-                </div>
-        
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold mb-2">Dernière mise à jour</h3>
-                  <p className="text-gray-600">15 Mars 2024 à 14:30</p>
-                  <button className="mt-4 flex items-center space-x-2 text-blue-600 hover:text-blue-700">
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Actualiser</span>
-                  </button>
-                </div>
-              </div>
-        
-              <div className="mt-8">
-                {/* Affichage de tous les comptes de résultat */}
-                {comptesResultat.map((cr, index) => (
-                  <div key={`cr-${index}`} className="bg-white shadow rounded p-4 mb-4">
-                    <h3 className="text-lg font-bold">📊 Compte de Résultat #{index + 1}</h3>
-                    <p>Chiffre d'affaires : {cr.CA} €</p>
-                    <p>Marge brute : {(cr.CA - (cr.chargesCarburant + cr.entretien + cr.personnel + cr.amortissements)).toFixed(2)} €</p>
-                    <p>Résultat d'exploitation : {(cr.CA - cr.chargesCarburant - cr.entretien - cr.personnel - cr.amortissements).toFixed(2)} €</p>
-                    <p>Ratio Charges/CA : {((cr.chargesCarburant + cr.entretien + cr.personnel + cr.amortissements) / cr.CA * 100).toFixed(2)}%</p>
-                    <p>CAF : {(cr.resultatNet + cr.amortissements).toFixed(2)} €</p>
-                  </div>
-                ))}
-        
-                {/* Affichage de tous les bilans comptables */}
-                {bilansComptables.map((bc, index) => (
-                  <div key={`bc-${index}`} className="bg-white shadow rounded p-4 mb-4">
-                    <h3 className="text-lg font-bold">📈 Bilan Comptable #{index + 1}</h3>
-                    <p>Valeur des Immobilisations : {bc.immobilisations} €</p>
-                    <p>Dettes : {bc.dettes} €</p>
-                    <p>Trésorerie : {bc.tresorerie} €</p>
-                    <p>Capitaux Propres : {bc.capitauxPropres} €</p>
-                    <p>Ratio d’endettement : {(bc.dettes / bc.capitauxPropres).toFixed(2)}</p>
-                    <p>Autonomie Financière : {(bc.capitauxPropres / (bc.dettes + bc.capitauxPropres) * 100).toFixed(2)}%</p>
-                    <p>Valeur nette du parc : {(bc.immobilisations - bc.dettes).toFixed(2)} €</p>
-                  </div>
-                ))}
-              </div>
-        
-              {/* Analyse Financière */}
-              <div className="mt-8 bg-gray-50 rounded-lg p-6 shadow">
-  <h3 className="text-lg font-bold mb-4">📊 Analyse Financière</h3>
-  {comptesResultat.length > 0 && bilansComptables.length > 0 ? (
-    <div className="space-y-2">
-      <p>
-        <strong>Ratio de rentabilité :</strong>{" "}
-        {(
-          (comptesResultat[0].resultatNet / comptesResultat[0].CA) *
-          100
-        ).toFixed(2)}
-        %
-      </p>
-      <p>
-        <strong>Ratio d'endettement :</strong>{" "}
-        {(
-          bilansComptables[0].dettes / bilansComptables[0].capitauxPropres
-        ).toFixed(2)}
-      </p>
-      <p>
-        <strong>Trésorerie nette :</strong>{" "}
-        {(
-          bilansComptables[0].tresorerie - bilansComptables[0].dettes
-        ).toFixed(2)}{" "}
-        €
-      </p>
-      <p>
-        <strong>Autonomie financière :</strong>{" "}
-        {(
-          (bilansComptables[0].capitauxPropres /
-            (bilansComptables[0].dettes + bilansComptables[0].capitauxPropres)) *
-          100
-        ).toFixed(2)}
-        %
-      </p>
-      <p>
-        <strong>Ratio de liquidité générale :</strong>{" "}
-        {(
-          bilansComptables[0].tresorerie / bilansComptables[0].dettes
-        ).toFixed(2)}
-      </p>
-      <p>
-        <strong>Marge brute :</strong>{" "}
-        {(
-          (comptesResultat[0].CA -
-            (comptesResultat[0].chargesCarburant +
-              comptesResultat[0].entretien +
-              comptesResultat[0].personnel +
-              comptesResultat[0].amortissements)) /
-          comptesResultat[0].CA *
-          100
-        ).toFixed(2)}
-        %
-      </p>
-      <p>
-        <strong>CAF (Capacité d'autofinancement) :</strong>{" "}
-        {(
-          comptesResultat[0].resultatNet + comptesResultat[0].amortissements
-        ).toFixed(2)}{" "}
-        €
-      </p>
-      <p>
-        <strong>Ratio de couverture des immobilisations :</strong>{" "}
-        {(
-          bilansComptables[0].capitauxPropres / bilansComptables[0].immobilisations
-        ).toFixed(2)}
-      </p>
-      <p>
-        <strong>Ratio de solvabilité :</strong>{" "}
-        {(
-          bilansComptables[0].capitauxPropres /
-          (bilansComptables[0].capitauxPropres + bilansComptables[0].dettes)
-        ).toFixed(2)}
-      </p>
-      <p>
-        <strong>Ratio de charges d'exploitation :</strong>{" "}
-        {(
-          ((comptesResultat[0].chargesCarburant +
-            comptesResultat[0].entretien +
-            comptesResultat[0].personnel +
-            comptesResultat[0].amortissements) /
-            comptesResultat[0].CA) *
-          100
-        ).toFixed(2)}
-        %
-      </p>
-    </div>
-  ) : (
-    <p className="text-gray-500">
-      Aucune donnée disponible pour l'analyse financière.
-    </p>
-  )}
+      case "accounting":
+        return (
+          <div className="bg-white rounded-lg p-6 shadow-md">
+            <h2 className="text-2xl font-bold mb-6">Données Comptables</h2>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                  <Download className="w-5 h-5" />
+                  <span>Télécharger le modèle Excel</span>
+                </button>
 
-  {/* Bouton pour télécharger l'analyse financière */}
-  <button
-    onClick={handleDownloadAnalysis}
-    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-  >
-    Télécharger l'analyse financière
-  </button>
-</div>
-            </div>
-          );
-        case "indicators":
-          return (
-            <div className="bg-white rounded-lg p-6 shadow-md">
-              <h2 className="text-2xl font-bold mb-6">Indicateurs Détaillés</h2>
-        
-              {/* Bouton pour importer un fichier CSV */}
-              <button
-                onClick={() => setShowIndicatorUpload(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                Importer des indicateurs détaillés CSV
-              </button>
-        
-              {/* Modal d'importation */}
-              {showIndicatorUpload && (
-                <FileUploadModal
-                  onClose={() => setShowIndicatorUpload(false)}
-                  onUpload={(data) => {
-                    processIndicatorsData(data);
-                    setShowIndicatorUpload(false);
-                  }}
-                />
-              )}
-        
-              {/* Moyennes des indicateurs importés */}
-              <div className="mt-6 bg-gray-50 rounded-lg p-4 shadow">
-                <h3 className="text-lg font-semibold mb-4">📌 Moyennes des Indicateurs importés :</h3>
-                {calculerMoyennes() ? (
-                  <ul className="list-disc pl-5">
-                    <li>Missions effectuées : {calculerMoyennes()?.missionsEffectuees}</li>
-                    <li>Kilomètres parcourus : {calculerMoyennes()?.kmParcourus} km</li>
-                    <li>Trajets à vide : {calculerMoyennes()?.trajetsAVide}</li>
-                    <li>Volume transporté : {calculerMoyennes()?.volumeTotalTransporte}</li>
-                    <li>Capacité totale du camion : {calculerMoyennes()?.capaciteTotaleCamion}</li>
-                    <li>Montant carburant dépensé : {calculerMoyennes()?.montantCarburant} €</li>
-                    <li>Montant carburant/km : {calculerMoyennes()?.montantCarburantKm} €/Km</li>
-                    <li>Frais d'entretien moyens : {calculerMoyennes()?.fraisEntretien} €</li>
-                    <li>Livraisons à l'heure : {calculerMoyennes()?.livraisonsALHeure}</li>
-                    <li>Total livraisons : {calculerMoyennes()?.totalLivraisons}</li>
-                  </ul>
-                ) : (
-                  <p className="text-gray-500">Aucune donnée importée pour le moment.</p>
+                <button
+                  onClick={() => setIsUploadOpen(true)}
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                >
+                  <FileUp className="w-5 h-5" />
+                  <span>Importer des données</span>
+                </button>
+
+                {isUploadOpen && (
+                  <FileUploadModal
+                    onClose={() => setIsUploadOpen(false)}
+                    onUpload={handleUpload}
+                  />
                 )}
               </div>
-        
-              {/* Indicateurs de performance */}
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-4">📊 Indicateurs de Performance :</h3>
-                <div className="grid grid-cols-2 gap-6">
-                  {performanceIndicators.map((indicator, index) => (
-                    <Card
-                      key={index}
-                      className="transform transition-all duration-300 hover:shadow-lg"
-                    >
-                      <div className="p-4">
-                        <Text className="font-medium">{indicator.name}</Text>
-                        <div className="flex items-center mt-2">
-                          <span className="text-2xl font-bold mr-2">{indicator.value}</span>
-                          <span className="text-gray-500">{indicator.comparison}</span>
-                        </div>
-                        <div className="mt-4 h-2 bg-gray-200 rounded-full">
-                          <div
-                            className={`h-2 rounded-full ${
-                              indicator.status === "success"
-                                ? "bg-green-500"
-                                : indicator.status === "warning"
-                                ? "bg-yellow-500"
-                                : "bg-red-500"
-                            }`}
-                            style={{ width: "70%" }}
-                          />
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
+
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold mb-2">Dernière mise à jour</h3>
+                <p className="text-gray-600">15 Mars 2024 à 14:30</p>
+                <button className="mt-4 flex items-center space-x-2 text-blue-600 hover:text-blue-700">
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Actualiser</span>
+                </button>
               </div>
             </div>
-          );
+
+            <div className="mt-8">
+              {/* Affichage de tous les comptes de résultat */}
+              {comptesResultat.map((cr, index) => (
+                <div
+                  key={`cr-${index}`}
+                  className="bg-white shadow rounded p-4 mb-4"
+                >
+                  <h3 className="text-lg font-bold">
+                    📊 Compte de Résultat #{index + 1}
+                  </h3>
+                  <p>Chiffre d'affaires : {cr.CA} €</p>
+                  <p>
+                    Marge brute :{" "}
+                    {(
+                      cr.CA -
+                      (cr.chargesCarburant +
+                        cr.entretien +
+                        cr.personnel +
+                        cr.amortissements)
+                    ).toFixed(2)}{" "}
+                    €
+                  </p>
+                  <p>
+                    Résultat d'exploitation :{" "}
+                    {(
+                      cr.CA -
+                      cr.chargesCarburant -
+                      cr.entretien -
+                      cr.personnel -
+                      cr.amortissements
+                    ).toFixed(2)}{" "}
+                    €
+                  </p>
+                  <p>
+                    Ratio Charges/CA :{" "}
+                    {(
+                      ((cr.chargesCarburant +
+                        cr.entretien +
+                        cr.personnel +
+                        cr.amortissements) /
+                        cr.CA) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                  <p>
+                    CAF : {(cr.resultatNet + cr.amortissements).toFixed(2)} €
+                  </p>
+                </div>
+              ))}
+
+              {/* Affichage de tous les bilans comptables */}
+              {bilansComptables.map((bc, index) => (
+                <div
+                  key={`bc-${index}`}
+                  className="bg-white shadow rounded p-4 mb-4"
+                >
+                  <h3 className="text-lg font-bold">
+                    📈 Bilan Comptable #{index + 1}
+                  </h3>
+                  <p>Valeur des Immobilisations : {bc.immobilisations} €</p>
+                  <p>Dettes : {bc.dettes} €</p>
+                  <p>Trésorerie : {bc.tresorerie} €</p>
+                  <p>Capitaux Propres : {bc.capitauxPropres} €</p>
+                  <p>
+                    Ratio d’endettement :{" "}
+                    {(bc.dettes / bc.capitauxPropres).toFixed(2)}
+                  </p>
+                  <p>
+                    Autonomie Financière :{" "}
+                    {(
+                      (bc.capitauxPropres / (bc.dettes + bc.capitauxPropres)) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                  <p>
+                    Valeur nette du parc :{" "}
+                    {(bc.immobilisations - bc.dettes).toFixed(2)} €
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Analyse Financière */}
+            <div className="mt-8 bg-gray-50 rounded-lg p-6 shadow">
+              <h3 className="text-lg font-bold mb-4">📊 Analyse Financière</h3>
+              {comptesResultat.length > 0 && bilansComptables.length > 0 ? (
+                <div className="space-y-2">
+                  <p>
+                    <strong>Ratio de rentabilité :</strong>{" "}
+                    {(
+                      (comptesResultat[0].resultatNet / comptesResultat[0].CA) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                  <p>
+                    <strong>Ratio d'endettement :</strong>{" "}
+                    {(
+                      bilansComptables[0].dettes /
+                      bilansComptables[0].capitauxPropres
+                    ).toFixed(2)}
+                  </p>
+                  <p>
+                    <strong>Trésorerie nette :</strong>{" "}
+                    {(
+                      bilansComptables[0].tresorerie -
+                      bilansComptables[0].dettes
+                    ).toFixed(2)}{" "}
+                    €
+                  </p>
+                  <p>
+                    <strong>Autonomie financière :</strong>{" "}
+                    {(
+                      (bilansComptables[0].capitauxPropres /
+                        (bilansComptables[0].dettes +
+                          bilansComptables[0].capitauxPropres)) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                  <p>
+                    <strong>Ratio de liquidité générale :</strong>{" "}
+                    {(
+                      bilansComptables[0].tresorerie /
+                      bilansComptables[0].dettes
+                    ).toFixed(2)}
+                  </p>
+                  <p>
+                    <strong>Marge brute :</strong>{" "}
+                    {(
+                      ((comptesResultat[0].CA -
+                        (comptesResultat[0].chargesCarburant +
+                          comptesResultat[0].entretien +
+                          comptesResultat[0].personnel +
+                          comptesResultat[0].amortissements)) /
+                        comptesResultat[0].CA) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                  <p>
+                    <strong>CAF (Capacité d'autofinancement) :</strong>{" "}
+                    {(
+                      comptesResultat[0].resultatNet +
+                      comptesResultat[0].amortissements
+                    ).toFixed(2)}{" "}
+                    €
+                  </p>
+                  <p>
+                    <strong>Ratio de couverture des immobilisations :</strong>{" "}
+                    {(
+                      bilansComptables[0].capitauxPropres /
+                      bilansComptables[0].immobilisations
+                    ).toFixed(2)}
+                  </p>
+                  <p>
+                    <strong>Ratio de solvabilité :</strong>{" "}
+                    {(
+                      bilansComptables[0].capitauxPropres /
+                      (bilansComptables[0].capitauxPropres +
+                        bilansComptables[0].dettes)
+                    ).toFixed(2)}
+                  </p>
+                  <p>
+                    <strong>Ratio de charges d'exploitation :</strong>{" "}
+                    {(
+                      ((comptesResultat[0].chargesCarburant +
+                        comptesResultat[0].entretien +
+                        comptesResultat[0].personnel +
+                        comptesResultat[0].amortissements) /
+                        comptesResultat[0].CA) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                </div>
+              ) : (
+                <p className="text-gray-500">
+                  Aucune donnée disponible pour l'analyse financière.
+                </p>
+              )}
+
+              {/* Bouton pour télécharger l'analyse financière */}
+              <button
+                onClick={handleDownloadAnalysis}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Télécharger l'analyse financière
+              </button>
+            </div>
+          </div>
+        );
+      case "indicators":
+        return (
+          <div className="bg-white rounded-lg p-6 shadow-md">
+            <h2 className="text-2xl font-bold mb-6">Indicateurs Détaillés</h2>
+
+            {/* Bouton pour importer un fichier CSV */}
+            <button
+              onClick={() => setShowIndicatorUpload(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Importer des indicateurs détaillés CSV
+            </button>
+
+            {/* Modal d'importation */}
+            {showIndicatorUpload && (
+              <FileUploadModal
+                onClose={() => setShowIndicatorUpload(false)}
+                onUpload={(data) => {
+                  processIndicatorsData(data);
+                  setShowIndicatorUpload(false);
+                }}
+              />
+            )}
+
+            {/* Moyennes des indicateurs importés */}
+            <div className="mt-6 bg-gray-50 rounded-lg p-4 shadow">
+              <h3 className="text-lg font-semibold mb-4">
+                📌 Moyennes des Indicateurs importés :
+              </h3>
+              {calculerMoyennes() ? (
+                <ul className="list-disc pl-5">
+                  <li>
+                    Missions effectuées :{" "}
+                    {calculerMoyennes()?.missionsEffectuees}
+                  </li>
+                  <li>
+                    Kilomètres parcourus : {calculerMoyennes()?.kmParcourus} km
+                  </li>
+                  <li>Trajets à vide : {calculerMoyennes()?.trajetsAVide}</li>
+                  <li>
+                    Volume transporté :{" "}
+                    {calculerMoyennes()?.volumeTotalTransporte}
+                  </li>
+                  <li>
+                    Capacité totale du camion :{" "}
+                    {calculerMoyennes()?.capaciteTotaleCamion}
+                  </li>
+                  <li>
+                    Montant carburant dépensé :{" "}
+                    {calculerMoyennes()?.montantCarburant} €
+                  </li>
+                  <li>
+                    Montant carburant/km :{" "}
+                    {calculerMoyennes()?.montantCarburantKm} €/Km
+                  </li>
+                  <li>
+                    Frais d'entretien moyens :{" "}
+                    {calculerMoyennes()?.fraisEntretien} €
+                  </li>
+                  <li>
+                    Livraisons à l'heure :{" "}
+                    {calculerMoyennes()?.livraisonsALHeure}
+                  </li>
+                  <li>
+                    Total livraisons : {calculerMoyennes()?.totalLivraisons}
+                  </li>
+                </ul>
+              ) : (
+                <p className="text-gray-500">
+                  Aucune donnée importée pour le moment.
+                </p>
+              )}
+            </div>
+
+            {/* Indicateurs de performance */}
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-4">
+                📊 Indicateurs de Performance :
+              </h3>
+              <div className="grid grid-cols-2 gap-6">
+                {performanceIndicators.map((indicator, index) => (
+                  <Card
+                    key={index}
+                    className="transform transition-all duration-300 hover:shadow-lg"
+                  >
+                    <div className="p-4">
+                      <Text className="font-medium">{indicator.name}</Text>
+                      <div className="flex items-center mt-2">
+                        <span className="text-2xl font-bold mr-2">
+                          {indicator.value}
+                        </span>
+                        <span className="text-gray-500">
+                          {indicator.comparison}
+                        </span>
+                      </div>
+                      <div className="mt-4 h-2 bg-gray-200 rounded-full">
+                        <div
+                          className={`h-2 rounded-full ${
+                            indicator.status === "success"
+                              ? "bg-green-500"
+                              : indicator.status === "warning"
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                          }`}
+                          style={{ width: "70%" }}
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
       case "market":
         return (
           <div className="bg-white rounded-lg p-6 shadow-md">
@@ -579,8 +703,8 @@ function App() {
                         {recommendation.type === "improvement"
                           ? "Amélioration"
                           : recommendation.type === "warning"
-                            ? "Attention"
-                            : "Information"}
+                          ? "Attention"
+                          : "Information"}
                       </Text>
                       <Text className="mt-1">{recommendation.message}</Text>
                     </div>
@@ -650,138 +774,187 @@ function App() {
     }
   };
   // Juste avant le return dans App.tsx
-const dernierCompteResultat = comptesResultat[comptesResultat.length - 1];
 
-const kpiCards: KPICard[] = dernierCompteResultat
-  ? [
+  const kpiCards: KPICard[] = dernierCompteResultat
+    ? [
+        {
+          title: "Chiffre d'affaires",
+          value: `${dernierCompteResultat.CA.toLocaleString()} €`,
+          change: "-", // Si tu veux une variation, il te faut importer plusieurs périodes
+          trend: "up",
+          icon: <BarChart className="w-6 h-6 text-blue-600" />,
+        },
+        {
+          title: "Marge brute",
+          value: `${(
+            dernierCompteResultat.CA -
+            (dernierCompteResultat.chargesCarburant +
+              dernierCompteResultat.entretien +
+              dernierCompteResultat.personnel +
+              dernierCompteResultat.amortissements)
+          ).toLocaleString()} €`,
+          change: "-",
+          trend: "up",
+          icon: <TrendingUp className="w-6 h-6 text-green-600" />,
+        },
+        {
+          title: "Coûts carburant",
+          value: `${dernierCompteResultat.chargesCarburant.toLocaleString()} €`,
+          change: "-",
+          trend: "down",
+          icon: <TrendingDown className="w-6 h-6 text-red-600" />,
+        },
+        {
+          title: "Résultat net",
+          value: `${dernierCompteResultat.resultatNet.toLocaleString()} €`,
+          change: "-",
+          trend: dernierCompteResultat.resultatNet >= 0 ? "up" : "down",
+          icon: <Truck className="w-6 h-6 text-purple-600" />,
+        },
+      ]
+    : [
+        {
+          title: "Chiffre d'affaires",
+          value: "-",
+          change: "-",
+          trend: "up",
+          icon: <BarChart className="w-6 h-6 text-blue-600" />,
+        },
+        {
+          title: "Marge brute",
+          value: "-",
+          change: "-",
+          trend: "up",
+          icon: <TrendingUp className="w-6 h-6 text-green-600" />,
+        },
+        {
+          title: "Coûts carburant",
+          value: "-",
+          change: "-",
+          trend: "down",
+          icon: <TrendingDown className="w-6 h-6 text-red-600" />,
+        },
+        {
+          title: "Résultat net",
+          value: "-",
+          change: "-",
+          trend: "up",
+          icon: <Truck className="w-6 h-6 text-purple-600" />,
+        },
+      ];
+
+  const handleDownloadAnalysis = () => {
+    if (comptesResultat.length === 0 || bilansComptables.length === 0) {
+      alert("Aucune donnée disponible pour l'analyse financière.");
+      return;
+    }
+
+    const data = [
       {
-        title: "Chiffre d'affaires",
-        value: `${dernierCompteResultat.CA.toLocaleString()} €`,
-        change: "-", // Si tu veux une variation, il te faut importer plusieurs périodes
-        trend: "up",
-        icon: <BarChart className="w-6 h-6 text-blue-600" />,
-      },
-      {
-        title: "Marge brute",
-        value: `${(
-          dernierCompteResultat.CA -
-          (dernierCompteResultat.chargesCarburant +
-            dernierCompteResultat.entretien +
-            dernierCompteResultat.personnel +
-            dernierCompteResultat.amortissements)
-        ).toLocaleString()} €`,
-        change: "-",
-        trend: "up",
-        icon: <TrendingUp className="w-6 h-6 text-green-600" />,
-      },
-      {
-        title: "Coûts carburant",
-        value: `${dernierCompteResultat.chargesCarburant.toLocaleString()} €`,
-        change: "-",
-        trend: "down",
-        icon: <TrendingDown className="w-6 h-6 text-red-600" />,
-      },
-      {
-        title: "Résultat net",
-        value: `${dernierCompteResultat.resultatNet.toLocaleString()} €`,
-        change: "-",
-        trend: dernierCompteResultat.resultatNet >= 0 ? "up" : "down",
-        icon: <Truck className="w-6 h-6 text-purple-600" />,
-      },
-    ]
-  : [
-      {
-        title: "Chiffre d'affaires",
-        value: "-",
-        change: "-",
-        trend: "up",
-        icon: <BarChart className="w-6 h-6 text-blue-600" />,
-      },
-      {
-        title: "Marge brute",
-        value: "-",
-        change: "-",
-        trend: "up",
-        icon: <TrendingUp className="w-6 h-6 text-green-600" />,
-      },
-      {
-        title: "Coûts carburant",
-        value: "-",
-        change: "-",
-        trend: "down",
-        icon: <TrendingDown className="w-6 h-6 text-red-600" />,
-      },
-      {
-        title: "Résultat net",
-        value: "-",
-        change: "-",
-        trend: "up",
-        icon: <Truck className="w-6 h-6 text-purple-600" />,
+        "Ratio de rentabilité": `${(
+          (comptesResultat[0].resultatNet / comptesResultat[0].CA) *
+          100
+        ).toFixed(2)}%`,
+        "Ratio d'endettement": `${(
+          bilansComptables[0].dettes / bilansComptables[0].capitauxPropres
+        ).toFixed(2)}`,
+        "Trésorerie nette": `${(
+          bilansComptables[0].tresorerie - bilansComptables[0].dettes
+        ).toFixed(2)} €`,
+        "Autonomie financière": `${(
+          (bilansComptables[0].capitauxPropres /
+            (bilansComptables[0].dettes +
+              bilansComptables[0].capitauxPropres)) *
+          100
+        ).toFixed(2)}%`,
+        "Ratio de liquidité générale": `${(
+          bilansComptables[0].tresorerie / bilansComptables[0].dettes
+        ).toFixed(2)}`,
+        "Marge brute": `${(
+          ((comptesResultat[0].CA -
+            (comptesResultat[0].chargesCarburant +
+              comptesResultat[0].entretien +
+              comptesResultat[0].personnel +
+              comptesResultat[0].amortissements)) /
+            comptesResultat[0].CA) *
+          100
+        ).toFixed(2)}%`,
+        "CAF (Capacité d'autofinancement)": `${(
+          comptesResultat[0].resultatNet + comptesResultat[0].amortissements
+        ).toFixed(2)} €`,
+        "Ratio de couverture des immobilisations": `${(
+          bilansComptables[0].capitauxPropres /
+          bilansComptables[0].immobilisations
+        ).toFixed(2)}`,
+        "Ratio de solvabilité": `${(
+          bilansComptables[0].capitauxPropres /
+          (bilansComptables[0].capitauxPropres + bilansComptables[0].dettes)
+        ).toFixed(2)}`,
+        "Ratio de charges d'exploitation": `${(
+          ((comptesResultat[0].chargesCarburant +
+            comptesResultat[0].entretien +
+            comptesResultat[0].personnel +
+            comptesResultat[0].amortissements) /
+            comptesResultat[0].CA) *
+          100
+        ).toFixed(2)}%`,
       },
     ];
 
-const handleDownloadAnalysis = () => {
-  if (comptesResultat.length === 0 || bilansComptables.length === 0) {
-    alert("Aucune donnée disponible pour l'analyse financière.");
-    return;
-  }
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Analyse Financière");
 
-  const data = [
-    {
-      "Ratio de rentabilité": `${(
-        (comptesResultat[0].resultatNet / comptesResultat[0].CA) *
-        100
-      ).toFixed(2)}%`,
-      "Ratio d'endettement": `${(
-        bilansComptables[0].dettes / bilansComptables[0].capitauxPropres
-      ).toFixed(2)}`,
-      "Trésorerie nette": `${(
-        bilansComptables[0].tresorerie - bilansComptables[0].dettes
-      ).toFixed(2)} €`,
-      "Autonomie financière": `${(
-        (bilansComptables[0].capitauxPropres /
-          (bilansComptables[0].dettes + bilansComptables[0].capitauxPropres)) *
-        100
-      ).toFixed(2)}%`,
-      "Ratio de liquidité générale": `${(
-        bilansComptables[0].tresorerie / bilansComptables[0].dettes
-      ).toFixed(2)}`,
-      "Marge brute": `${(
-        (comptesResultat[0].CA -
-          (comptesResultat[0].chargesCarburant +
-            comptesResultat[0].entretien +
-            comptesResultat[0].personnel +
-            comptesResultat[0].amortissements)) /
-        comptesResultat[0].CA *
-        100
-      ).toFixed(2)}%`,
-      "CAF (Capacité d'autofinancement)": `${(
-        comptesResultat[0].resultatNet + comptesResultat[0].amortissements
-      ).toFixed(2)} €`,
-      "Ratio de couverture des immobilisations": `${(
-        bilansComptables[0].capitauxPropres / bilansComptables[0].immobilisations
-      ).toFixed(2)}`,
-      "Ratio de solvabilité": `${(
-        bilansComptables[0].capitauxPropres /
-        (bilansComptables[0].capitauxPropres + bilansComptables[0].dettes)
-      ).toFixed(2)}`,
-      "Ratio de charges d'exploitation": `${(
-        ((comptesResultat[0].chargesCarburant +
-          comptesResultat[0].entretien +
-          comptesResultat[0].personnel +
-          comptesResultat[0].amortissements) /
-          comptesResultat[0].CA) *
-        100
-      ).toFixed(2)}%`,
-    },
-  ];
+    XLSX.writeFile(workbook, "analyse_financiere.xlsx");
+  };
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Analyse Financière");
+  useEffect(() => {
+    const latestMarket = getLatestMarketData();
+  
+    const nouvellesRecommandations: string[] = [];
+  
+    if (latestMarket && dernierCompteResultat) {
+      const coutCarburantInterne = dernierCompteResultat.chargesCarburant;
+      const coutMaintenanceInterne = dernierCompteResultat.entretien;
+  
+      if (coutCarburantInterne > latestMarket.gazolePro) {
+        //aficher dans la console les coutscarburantsInterne et latestMarket.gazolePro
+        console.log(coutCarburantInterne, latestMarket.gazolePro);
+        nouvellesRecommandations.push(
+          "🔴 Vos coûts de carburant sont supérieurs au marché. Renégociez vos tarifs ou optimisez vos trajets."
+        );
+      } else {
+        nouvellesRecommandations.push("🟢 Vos coûts de carburant sont compétitifs.");
+      }
 
-  XLSX.writeFile(workbook, "analyse_financiere.xlsx");
-};
+      if (coutMaintenanceInterne > latestMarket.maintenance) {
+        //afficher dans la console les couts maintenance Interne : "+ coutMaintenanceInterne, " Maintenance : "+latestMarket.maintenance
+        console.log("Couts maintenance interne : "+ coutMaintenanceInterne, " Maintenance : "+latestMarket.maintenance);
+        nouvellesRecommandations.push(
+          "🔴 Vos coûts de maintenance sont supérieurs à la moyenne. Planifiez des maintenances préventives."
+        );
+      } else {
+        nouvellesRecommandations.push("🟢 Vos coûts de maintenance sont compétitifs.");
+      }
+  
+      if (
+        dernierCompteResultat.CA - coutCarburantInterne - coutMaintenanceInterne <
+        latestMarket.indiceLDEA
+      ) {
+        nouvellesRecommandations.push(
+          "🔴 Votre rentabilité opérationnelle est inférieure à la moyenne sectorielle. Examinez vos charges d'exploitation."
+        );
+      } else {
+        //afficher dans la console le dernierCompteResultat.CA - coutCarburantInterne - coutMaintenanceInterne et latestMarket.indiceLDEA
+        console.log(dernierCompteResultat.CA - coutCarburantInterne - coutMaintenanceInterne, latestMarket.indiceLDEA);
+        nouvellesRecommandations.push("🟢 Votre rentabilité opérationnelle est bonne.");
+      }
+    }
+  
+    setRecommandations(nouvellesRecommandations);
+  }, [comptesResultat, getLatestMarketData()]);
+  
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -812,10 +985,11 @@ const handleDownloadAnalysis = () => {
             <button
               key={item.id}
               onClick={() => setCurrentView(item.id as View)}
-              className={`flex items-center space-x-2 w-full p-2 rounded transition-colors ${currentView === item.id
+              className={`flex items-center space-x-2 w-full p-2 rounded transition-colors ${
+                currentView === item.id
                   ? "bg-blue-50 text-blue-600"
                   : "text-gray-600 hover:bg-gray-50"
-                }`}
+              }`}
             >
               <item.icon className="w-5 h-5" />
               <span>{item.label}</span>
@@ -832,14 +1006,14 @@ const handleDownloadAnalysis = () => {
               {currentView === "dashboard"
                 ? "Tableau de bord"
                 : currentView === "accounting"
-                  ? "Données comptables"
-                  : currentView === "indicators"
-                    ? "Indicateurs"
-                    : currentView === "market"
-                      ? "Comparaison marché"
-                      : currentView === "recommendations"
-                        ? "Recommandations"
-                        : "Paramètres"}
+                ? "Données comptables"
+                : currentView === "indicators"
+                ? "Indicateurs"
+                : currentView === "market"
+                ? "Comparaison marché"
+                : currentView === "recommendations"
+                ? "Recommandations"
+                : "Paramètres"}
             </h2>
             <p className="text-gray-600">
               Analyse financière et performance opérationnelle

@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 
 interface FileUploadModalProps {
   onClose: () => void;
-  onUpload: (data: any[]) => void;
+  onUpload: (data: any[], file: File) => void; // ← Modification ici
 }
 
 export const FileUploadModal: React.FC<FileUploadModalProps> = ({ onClose, onUpload }) => {
@@ -13,13 +13,14 @@ export const FileUploadModal: React.FC<FileUploadModalProps> = ({ onClose, onUpl
     acceptedFiles.forEach((file) => {
       Papa.parse(file, {
         complete: (results) => {
-          onUpload(results.data);
+          onUpload(results.data, file);
         },
         header: true,
         skipEmptyLines: true,
       });
     });
   }, [onUpload]);
+  
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
